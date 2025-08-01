@@ -135,7 +135,8 @@ async function generateSubModuleContentWithRetry({
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer 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`,
+                    Authorization: `Bearer ${process.env.mongo_course}`,
+
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -245,7 +246,7 @@ Focus on logical progression from basics to advanced concepts.`;
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer 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`,
+          Authorization: `Bearer ${process.env.mongo_course}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
