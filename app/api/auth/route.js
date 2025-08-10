@@ -2,54 +2,82 @@ import bcrypt from 'bcryptjs'
 import Users from '../../../models/Users.js'
 import jwt from 'jsonwebtoken'
 import dbConnect from '../../../lib/dbConn.js'
+import { cookies } from 'next/headers'; // if using app router
 
 export async function POST(req) {
-        await dbConnect()
+  try {
+    await dbConnect()
 
-  const body = await req.json()
-  const { email, password, name, action } = body
+    const body = await req.json()
+    const { email, password, name, action } = body
 
-  if (action === 'register') {
-    const existingUser = await Users.findOne({ email })
-    if (existingUser) {
-      return Response.json({ status: 409, message: "User already exists" })
+    if (action === 'register') {
+      const existingUser = await Users.findOne({ email })
+      if (existingUser) {
+        // Return with proper 409 status code
+        return Response.json(
+          { message: "User already exists" }, 
+          { status: 409 }
+        )
+      }
+
+      const hashPassword = await bcrypt.hash(password, 10)
+      const newUser = new Users({ name, email, password: hashPassword })
+      const savedUser = await newUser.save()
+
+      const token = jwt.sign({ email }, 'meriSecretKey', { expiresIn: '7d' })
+
+      return Response.json({
+        message: "User registered successfully",
+        token,
+        user: savedUser
+      }, { status: 201 })
     }
 
-    const hashPassword = await bcrypt.hash(password, 10)
-    const newUser = new Users({ name, email, password: hashPassword })
-    const savedUser = await newUser.save()
+    if (action === 'login') {
+      const user = await Users.findOne({ email })
+      if (!user) {
+        return Response.json(
+          { message: "User not found" }, 
+          { status: 404 }
+        )
+      }
 
-    const token = jwt.sign({ email }, 'meriSecretKey', { expiresIn: '1h' })
+      const isMatch = await bcrypt.compare(password, user.password)
+      if (!isMatch) {
+        return Response.json(
+          { message: "Incorrect password" }, 
+          { status: 401 }
+        )
+      }
 
-    return Response.json({
-      status: 201,
-      message: "User registered successfully",
-      token,
-      user: savedUser
-    })
+      const token = jwt.sign({id: user._id, email }, 'meriSecretKey', { expiresIn: '7d' })
+
+      cookies().set('token', token,{
+        httpOnly: true,
+        secure: process.env.NODE_ENV !== 'development',
+        maxAge: 60 * 60 * 24 * 7, // 1 week
+        sameSite: 'strict',
+        path: '/'
+      })
+
+      return Response.json({
+        message: "User logged in successfully",
+        token,
+        user
+      }, { status: 200 })
+    }
+
+    return Response.json(
+      { message: "Invalid action" }, 
+      { status: 400 }
+    )
+
+  } catch (error) {
+    console.error('API Error:', error)
+    return Response.json(
+      { message: "Internal server error" }, 
+      { status: 500 }
+    )
   }
-
-  if (action === 'login') {
-    const user = await Users.findOne({ email })
-    if (!user) {
-      return Response.json({ status: 404, message: "User not found" })
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password)
-    if (!isMatch) {
-      return Response.json({ status: 401, message: "Incorrect password" })
-    }
-
-    const token = jwt.sign({ email }, 'meriSecretKey', { expiresIn: '1h' })
-
-    return Response.json({
-      status: 200,
-      message: "User logged in successfully",
-      token,
-      user
-    })
-  }
-
-  return Response.json({ status: 400, message: "Invalid action" })
 }
-

@@ -33,7 +33,11 @@ export const POST =async(req)=>{
 
     const verificationToken=crypto.randomBytes(20).toString('hex')
     const verfiyExpiry=new Date(Date.now()+3600000)
-    const verificationUrl=`http://localhost:3000/api/Send_Email_AndVerify?action=verify&token=${verificationToken}`
+    // only backend verify
+        // const verificationUrl=`http://localhost:3000/api/Send_Email_AndVerify?action=verify&token=${verificationToken}`
+
+        // frontend verify
+const verificationUrl = `http://localhost:3000/verify?token=${verificationToken}`;
 
     // this one updating that user document token and expiry
     const updateDoc=await Users.updateOne({ email }, { $set: { verificationToken, verfiyExpiry } });
@@ -105,7 +109,7 @@ export async function GET(req) {
 
     await user.save()
 
-    return NextResponse.json({ message: 'Email verified successfully' }, { status: 200 })
+    return NextResponse.json({ success: true,message: 'Email verified successfully' }, { status: 200 })
   } catch (error) {
     console.error(error)
     return NextResponse.json({ message: 'Server error' }, { status: 500 })

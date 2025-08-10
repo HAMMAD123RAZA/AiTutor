@@ -1,6 +1,5 @@
 
 import mongoose, { mongo } from "mongoose";
-import { type } from "os";
 
 const userSchema = new mongoose.Schema({
     name: {
@@ -29,10 +28,10 @@ const userSchema = new mongoose.Schema({
         type: Date,
         default: null
     },
-      isVerified: { type: Boolean, default: false }
+      isVerified: { type: Boolean, default: false },
 
+  
 
 }, { timestamps: true })
 
 export default mongoose.models.Users ||  mongoose.model('Users',userSchema)
-

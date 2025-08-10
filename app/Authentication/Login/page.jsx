@@ -4,8 +4,8 @@ import { useState } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-// import { useNavigate } from 'next/navigation';
-
+import { useRouter } from 'next/navigation';
+import { useUser } from '../../../context/UserContext';
 const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
@@ -15,7 +15,8 @@ const Login = () => {
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-// const navigate = useNavigate();
+  const {setUser}=useUser()
+const router = useRouter();
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -30,15 +31,30 @@ const Login = () => {
     setError('');
 
     try {
-      const response = await axios.post('/api/auth', formData);
-      console.log('logged in successfully')
-      setFormData({
+      const response = await fetch('/api/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+        
+      
+        const result = await response.json();
+          
+      if (!response.ok) {
+        // This will now properly trigger for error status codes
+        setError(result.message || 'Something went wrong');
+        return;
+      }
+setFormData({
         email: '',
         password: '',
         action:'login'
       })
-      // navigate('/')
-      // Handle successful login
+          setUser(result?.user);
+
+router.push('/')
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {

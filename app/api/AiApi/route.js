@@ -6,6 +6,8 @@ export async function POST(req) {
     await dbConnect();
     const body = await req.json();
     const prompt = body.prompt;
+    const userId=body.userId
+    console.log('userId from aiapi:',userId)
 
     if (!prompt || prompt.trim() === '') {
       return Response.json({ error: 'Prompt is required' }, { status: 400 });
@@ -49,6 +51,7 @@ export async function POST(req) {
 
     const newCourse = new Course({
       courseId,
+      userIds:[userId],
       prompt,
       modules: allModules,
       content: JSON.stringify(courseContent),
@@ -136,7 +139,6 @@ async function generateSubModuleContentWithRetry({
         method: 'POST',
         headers: {
                     Authorization: `Bearer ${process.env.mongo_course}`,
-
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

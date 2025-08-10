@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import axios from 'axios';
+import { set } from 'mongoose';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -14,7 +16,8 @@ const Register = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
- 
+ const [sendLink, setsendLink] = useState(false)
+ const [Message, setMessage] = useState('')
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -43,19 +46,27 @@ const Register = () => {
         body: JSON.stringify(formData),
       })
         
-      const result=await response.json()
+     const result = await response.json();
           
-if (!response.ok) {
-  alert('register failed ')
-  setError(result.message || 'Something went wrong');
-  return;
-}
+      if (!response.ok) {
+        // This will now properly trigger for error status codes
+        setError(result.message || 'Something went wrong');
+        return;
+      }
+
       setFormData({
         name: '',
         email: '',
         password: '',
         confirmPassword: '',
       })
+      const verifyLink=await axios.post('/api/Send_Email_AndVerify', {
+        email: formData.email,
+        action:'verify'
+      }) 
+      setsendLink(true)
+      console.log('sent verifyLink:',verifyLink)
+              setMessage('Registration successful! Please check your email to verify your account.This Link Will expire in Few Mins');
 
       // Handle successful registration
     } catch (err) {
@@ -65,6 +76,13 @@ if (!response.ok) {
     }
   };
 
+  
+  setTimeout(() => {
+  setsendLink(false);
+  setMessage('');
+}, 9000);
+
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-black p-4">
       <motion.div
@@ -73,6 +91,16 @@ if (!response.ok) {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
+      {sendLink && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 bg-green-900/50 text-green-200 rounded-lg border border-green-700"
+          >
+
+            {Message}
+          </motion.div>
+        )}
         <div className="bg-gray-900 p-8 rounded-2xl shadow-2xl border border-gray-800">
           <motion.h2 
             className="text-3xl font-bold text-center text-yellow-500 mb-8"

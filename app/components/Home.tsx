@@ -3,6 +3,7 @@ import React, { useState } from 'react'
 import AdminWrapper from './Wrapper'
 import { FiCheckCircle, FiMessageSquare, FiBook, FiMap } from 'react-icons/fi'
 import { useRouter } from 'next/navigation'
+import { useUser } from '@/context/UserContext'
 
   const features = [
     { icon: <FiBook size={24} />, text: "Unlimited Courses and Guides" },
@@ -20,8 +21,45 @@ const [show, setshow] = useState(false)
 const [Input, setInput] = useState('')
 const [loading, setLoading] = useState(false);
 const [Error, setError] = useState('')
-
 const router=useRouter()
+  const { user, loadingUser } = useUser();
+console.log('user from home:',user)
+const userId=user?._id
+console.log('userId from Home:',userId)
+
+const validatePrompt = async (prompt) => {
+  try {
+    const api = await fetch('/api/PromptValidation', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ prompt })
+    });
+
+    const data = await api.json();
+    console.log('Prompt validation:', data);
+
+    if (api.ok && data.valid) {
+      return true;
+    } else {
+      setError(data.message || '❌ Not a programming-related prompt');
+      setTimeout(() => {
+        setError('');
+      }, 3000);
+      return false;
+    }
+
+  } catch (err) {
+    console.error('Validation error:', err);
+    setError('Something went wrong during validation');
+    setTimeout(() => {
+      setError('');
+    }, 3000);
+    return false;
+  }
+};
+
 
 const courseCheck=async(prompt)=>{
   try {
@@ -51,6 +89,11 @@ body:JSON.stringify({prompt})
 
 const handleGenrate=async()=>{
 
+  if(!user){
+    router.push('/Authentication/Login')
+    return
+  }
+
   if (!Input.trim()) {
     setError('ENTER COURSE TO GENRATE')
     setTimeout(() => {
@@ -58,10 +101,16 @@ const handleGenrate=async()=>{
     }, 3000);
     return 
   }
-
   console.log('value:',Input)
   setInput('')
   setLoading(true)
+
+  const isValid = await validatePrompt(Input);
+if (!isValid) {
+  setLoading(false);
+  return;
+}
+
   
 try {
         const courseExists = await courseCheck(Input)
@@ -72,13 +121,12 @@ try {
 return
       }
       
-
   const res=await fetch('/api/AiApi',{
     method:'POST',
 headers:{
   'Content-Type':'application/json'
 },
-body:JSON.stringify({prompt:Input})
+body:JSON.stringify({prompt:Input,userId:userId})
 
 })
 
@@ -97,8 +145,6 @@ const data=await res.json();
     setLoading(false);
   }
 }
-
-
     const renderModal=()=>{
     setshow(true)
 }
@@ -110,13 +156,14 @@ const data=await res.json();
   return (
     <>
     <AdminWrapper>
+        <div className="py-3 flex  flex-row items-center justify-end gap-4">
+          <div >
+            {/* <p>You are on the free plan</p> */}
+             <button onClick={renderModal} className="md font-bold cursor-pointer bg-yellow-700 text-white py-1 px-4 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 border-2 border-white hover:border-yellow-600 hover:text-yellow-700  focus:ring-yellow-500">Upgrade To Pro</button>
+        </div></div>
 
     <div className='flex flex-col  items-center py-3' >
-        <div className="py-3 flex flex-row items-center gap-4">
-            <p>You are on the free plan</p>
-             <button onClick={renderModal} className="md font-bold cursor-pointer bg-yellow-700 text-white py-1 px-4 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 border-2 border-white hover:border-yellow-600 hover:text-yellow-700  focus:ring-yellow-500">Upgrade To Pro</button>
-        </div>
-
+    <p className='font-bold text-4xl text-center '><span>Hello</span> {user?.name}</p>
     {show && (
           <div className="fixed inset-0 bg-gray-200 bg-opacity-50 flex items-center justify-center ">
             <div className="bg-white p-6 rounded-lg max-w-md w-full">

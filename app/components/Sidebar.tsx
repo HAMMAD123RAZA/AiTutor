@@ -5,6 +5,7 @@ import React from 'react'
 import { AiFillApi } from 'react-icons/ai'
 import { BiSearchAlt, BiTestTube } from 'react-icons/bi'
 import { FaMagento } from 'react-icons/fa'
+import { FaBookSkull } from 'react-icons/fa6'
 
 const SidebarData=[
     {
@@ -21,6 +22,11 @@ const SidebarData=[
         title:'Ask Ai',
         link:'/search',
                 icon:<BiSearchAlt/>
+
+    }, {
+        title:'My Courses',
+        link:'/courses',
+                icon:<FaBookSkull/>
 
     },
 ]
