@@ -17,8 +17,8 @@ const userSchema = new mongoose.Schema({
         required: true
     },
     role: {
-        type: Number,
-        default: 0
+        type: String,
+        default: 'user'
     },
         verificationToken: {
         type: String,
@@ -29,9 +29,21 @@ const userSchema = new mongoose.Schema({
         default: null
     },
       isVerified: { type: Boolean, default: false },
-
+    totalCredits:{
+        type:Number,
+        default:100
+    },
+    plan:{
+        type:String,
+        default:'Free'
+    },
+    creditUsed:{
+        type:Number,
+        default:0
+    }
   
 
 }, { timestamps: true })
 
 export default mongoose.models.Users ||  mongoose.model('Users',userSchema)
+

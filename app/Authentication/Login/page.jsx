@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useUser } from '../../../context/UserContext';
+import { trackLogin } from '../../../utils/Operations';
 const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
@@ -39,8 +40,12 @@ const router = useRouter();
         body: JSON.stringify(formData),
       })
         
-      
         const result = await response.json();
+        
+        // track login firebase
+        const email=result?.user?.email
+      await trackLogin(email)
+
           
       if (!response.ok) {
         // This will now properly trigger for error status codes
@@ -63,16 +68,16 @@ router.push('/')
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-black p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#c7b48c] via-[#95854c] to-[#675853] p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        <div className="bg-gray-900 p-8 rounded-2xl shadow-2xl border border-gray-800">
+        <div className="bg-black p-8 rounded-2xl shadow-2xl border border-gray-800">
           <motion.h2 
-            className="text-3xl font-bold text-center text-yellow-500 mb-8"
+            className="text-3xl font-bold text-center bg-gradient-to-br from-[#dfa527] via-[#e6dbb5] to-[#675853] bg-clip-text text-transparent mb-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
@@ -102,7 +107,7 @@ router.push('/')
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full p-4 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all duration-200"
+                  className="w-full p-4 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-[#95854c] transition-all duration-200"
                   required
                 />
               </motion.div>
@@ -119,14 +124,14 @@ router.push('/')
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full p-4 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all duration-200"
+                  className="w-full p-4 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-[#95854c] transition-all duration-200"
                   required
                 />
               </motion.div>
             </div>
             
             <div className="mb-6 text-right">
-              <Link href="/forgot-password" className="text-yellow-500 text-sm hover:underline focus:outline-none">
+              <Link href="/forgot-password" className="bg-gradient-to-br from-[#e1d6bd] via-[#fdfdfd] to-[#675853] bg-clip-text text-transparent text-sm hover:underline focus:outline-none">
                 Forgot password?
               </Link>
             </div>
@@ -136,10 +141,10 @@ router.push('/')
               disabled={loading}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className={`w-full py-4 px-6 rounded-lg font-bold text-lg transition-all duration-300 ${
+              className={`w-full py-4 px-6 cursor-pointer rounded-lg font-bold text-lg transition-all duration-300 ${
                 loading
-                  ? 'bg-yellow-700 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-500 hover:to-yellow-600'
+                  ? 'bg-[#6e5b55] cursor-not-allowed'
+                  : 'bg-gradient-to-r from-[#c7b48c] via-[#95854c] to-[#675853] hover:from-[#c7b48c]/90 hover:via-[#95854c]/90 hover:to-[#675853]/90'
               } text-white shadow-lg`}
             >
               {loading ? (
@@ -158,13 +163,13 @@ router.push('/')
           </form>
           
           <motion.div 
-            className="mt-6 text-center text-gray-400"
+            className="mt-6 text-center text-gray-200"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
             Don't have an account?{' '}
-            <Link href="/Authentication/Register" className="text-yellow-500 hover:text-yellow-400 font-medium focus:outline-none focus:underline transition-colors duration-200">
+            <Link href="/Authentication/Register" className="bg-gradient-to-br from-[#ffc039] via-[#dad5c7] to-[#675853] bg-clip-text text-transparent font-medium hover:underline transition-colors duration-200">
               Register here
             </Link>
           </motion.div>

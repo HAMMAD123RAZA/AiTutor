@@ -1,5 +1,6 @@
 import dbConnect from "../../../lib/dbConn";
 import Course from "../../../models/course";
+import courseProgress from "../../../models/courseProgress";
 
 export async function POST(req) {
   try {
@@ -7,7 +8,12 @@ export async function POST(req) {
     const body = await req.json();
     const prompt = body.prompt;
     const userId=body.userId
+
+    // track api code 
+    const user=body.user
+    const userEmail=user.email
     console.log('userId from aiapi:',userId)
+
 
     if (!prompt || prompt.trim() === '') {
       return Response.json({ error: 'Prompt is required' }, { status: 400 });
@@ -60,6 +66,20 @@ export async function POST(req) {
     });
 
     const savedCourse = await newCourse.save();
+
+
+    const newProgress = new courseProgress({
+      userId: userId,
+      courseId: savedCourse._id, 
+      progress: 0,
+      completed: false,
+      lastAccessed: new Date()
+    });
+
+    await newProgress.save();
+    
+    
+
 
     return Response.json({
       course: courseContent,

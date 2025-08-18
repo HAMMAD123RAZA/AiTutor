@@ -4,6 +4,9 @@ import jwt from 'jsonwebtoken'
 import dbConnect from '../../../lib/dbConn.js'
 import { cookies } from 'next/headers'; // if using app router
 
+
+const secretKey=`${process.env.secretKey}`;
+
 export async function POST(req) {
   try {
     await dbConnect()
@@ -24,8 +27,7 @@ export async function POST(req) {
       const hashPassword = await bcrypt.hash(password, 10)
       const newUser = new Users({ name, email, password: hashPassword })
       const savedUser = await newUser.save()
-
-      const token = jwt.sign({ email }, 'meriSecretKey', { expiresIn: '7d' })
+      const token = jwt.sign({ email }, secretKey, { expiresIn: '7d' })
 
       return Response.json({
         message: "User registered successfully",
@@ -51,7 +53,7 @@ export async function POST(req) {
         )
       }
 
-      const token = jwt.sign({id: user._id, email }, 'meriSecretKey', { expiresIn: '7d' })
+      const token = jwt.sign({id: user._id, email }, secretKey, { expiresIn: '7d' })
 
       cookies().set('token', token,{
         httpOnly: true,

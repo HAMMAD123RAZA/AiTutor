@@ -4,6 +4,7 @@ import AdminWrapper from './Wrapper'
 import { FiCheckCircle, FiMessageSquare, FiBook, FiMap } from 'react-icons/fi'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@/context/UserContext'
+import { apiUsage, courseCreatedUsage } from '@/utils/Operations'
 
   const features = [
     { icon: <FiBook size={24} />, text: "Unlimited Courses and Guides" },
@@ -65,7 +66,7 @@ const courseCheck=async(prompt)=>{
   try {
     const api=await fetch('/api/CheckCourse',{
       method:'POST',
-body:JSON.stringify({prompt})
+body:JSON.stringify({prompt,userId:userId,user})
 
     })
     const data=await api.json()
@@ -126,7 +127,7 @@ return
 headers:{
   'Content-Type':'application/json'
 },
-body:JSON.stringify({prompt:Input,userId:userId})
+body:JSON.stringify({prompt:Input,userId:userId,user})
 
 })
 
@@ -134,7 +135,21 @@ const data=await res.json();
 
     if (res.ok) {
       console.log("AI-generated course:", data?.course);
-            router.push(`/course/${data?.dbId}`);
+            
+      router.push(`/course/${data?.dbId}`);
+
+//api track code 
+    const apiType='Valuable'
+    const routeName='/AiApi'
+        const userEmail=user.email
+    await apiUsage(userId, routeName, userEmail,apiType)
+
+    // course backup firebase 
+
+      const  generatedAt=new Date()
+                   const type='Ai'
+                                const trackCourseCreation=await courseCreatedUsage(userId,userEmail,data?.dbId,generatedAt,Input,type)
+                                console.log('trackCourseCreation called:', trackCourseCreation)
 
     } else {
       console.error("Error:", data.error);
@@ -159,7 +174,17 @@ const data=await res.json();
         <div className="py-3 flex  flex-row items-center justify-end gap-4">
           <div >
             {/* <p>You are on the free plan</p> */}
-             <button onClick={renderModal} className="md font-bold cursor-pointer bg-yellow-700 text-white py-1 px-4 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 border-2 border-white hover:border-yellow-600 hover:text-yellow-700  focus:ring-yellow-500">Upgrade To Pro</button>
+            <button 
+  onClick={renderModal} 
+  className="md font-bold cursor-pointer bg-gradient-to-br from-[#c7b48c] via-[#95854c] to-[#675853] text-white py-1 px-4 rounded-lg border-2 border-white focus:outline-none focus:ring-2 focus:ring-yellow-500
+  hover:from-[#d8c9a5] hover:via-[#a6975d] hover:to-[#786963] 
+  hover:shadow-lg hover:shadow-[#c7b48c]/50 
+  hover:-translate-y-0.5 
+  transition-all duration-300 ease-in-out 
+  transform hover:scale-105"
+>
+  Upgrade To Pro
+</button>
         </div></div>
 
     <div className='flex flex-col  items-center py-3' >
@@ -179,8 +204,12 @@ const data=await res.json();
               <div className="mt-6 flex justify-center">
                 <button 
                   onClick={closeModal}
-                  className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700"
-                >
+ className="md font-bold cursor-pointer bg-gradient-to-br from-[#c7b48c] via-[#95854c] to-[#675853] text-white py-1 px-4 rounded-lg border-2 border-white focus:outline-none focus:ring-2 focus:ring-yellow-500
+  hover:from-[#d8c9a5] hover:via-[#a6975d] hover:to-[#786963] 
+  hover:shadow-lg hover:shadow-[#c7b48c]/50 
+  hover:-translate-y-0.5 
+  transition-all duration-300 ease-in-out 
+  transform hover:scale-105"                >
                   Got it!
                 </button>
               </div>

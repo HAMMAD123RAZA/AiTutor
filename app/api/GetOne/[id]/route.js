@@ -3,7 +3,6 @@ import dbConnect from "../../../../lib/dbConn";
 import course from "../../../../models/course";
 
 
-
 export async function GET(req, { params }) {
 
   await dbConnect();
@@ -34,7 +33,7 @@ const userId = searchParams.get('userId'); // ✅ Get userId here
     }
 
     if (action === 'all') {
-      const userId = params.id;
+      const userId = params?.id;
 //       const courses = await course.find({
 //   userIds: { $in: [new mongoose.Types.ObjectId(userId)] }
 // });

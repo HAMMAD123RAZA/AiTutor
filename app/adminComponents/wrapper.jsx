@@ -1,7 +1,9 @@
 'use client'
 import React, { useState } from 'react';
-import SideBar from './Sidebar';
+import SideBar from './sideBar';
+// import AdminNavbar from './AdminNavbar';
 import { FiMenu, FiX } from 'react-icons/fi';
+
 export default function AdminWrapper({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 

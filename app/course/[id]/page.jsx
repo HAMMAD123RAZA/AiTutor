@@ -5,64 +5,114 @@ import { useUser } from "../../../context/UserContext";
 import axios from 'axios';
 import { FaMicrophone, FaStopCircle } from 'react-icons/fa';
 import { uploadToCloudinary } from "../../utils/uploadCloud";
+import CallSection from "../../components/callSection";
+import ModuleBar from "../../detailPageCourse/moduleBar";
+import ContentArea from "../../detailPageCourse/ContentArea";
+import { apiUsage } from "../../../utils/Operations";
 
 export default function CoursePage({ params }) {
+
   const [data, setData] = useState(null);
   const [expandedModules, setExpandedModules] = useState({});
   const [selectedSubmodule, setSelectedSubmodule] = useState(null);
   const [audio, setAudio] = useState(null);
   const contentRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showModal, setShowModal] = useState(true);
+  const [showCallSection, setShowCallSection] = useState(false);
+  const [progressData, setprogressData] = useState({
+    completed: false,
+    progress: 0,
+    lastAccessed: null
+  });
+  const [loading, setLoading] = useState(true);
   const { user, loadingUser } = useUser()
-    const [recording, setRecording] = useState(false);
-  const [audioUrl, setAudioUrl] = useState("");
-  const mediaRecorderRef = useRef(null);
-  const chunksRef = useRef([]);
-  const [isRecording, setIsRecording] = useState(false);
-const [isProcessing, setIsProcessing] = useState(false);
-
-
-  const userId=user._id
+  console.log('user from detail:',user)
+  const userId=user?._id
+  const userEmail=user?.email
+  const userName=user?.name
   const { id } = use( params);
+const [completedSubmodules, setCompletedSubmodules] = useState([]);
 
+// Calculate total submodules count
+const totalSubmodules = data?.modules?.reduce(
+  (total, module) => total + (module.subModules?.length || 0), 
+  0
+) || 1; // Fallback to 1 to avoid division by zero
+  // Add this function to handle progress updates when a submodule is clicked
+const handleSubmoduleClick = async (subModule) => {
+  // 1. Always update the selected submodule
+  setSelectedSubmodule(subModule);
+  
+  // 2. Check if this submodule was already completed
+  if (completedSubmodules.includes(subModule._id)) {
+    return; // Skip if already completed
+  }
 
-const startRecording = async () => {
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  const mediaRecorder = new MediaRecorder(stream);
-  chunksRef.current = [];
-  mediaRecorderRef.current = mediaRecorder;
+  // 3. Calculate new progress
+  const progressIncrement = 100 / totalSubmodules;
+  const newProgress = Math.min(
+    progressData.progress + progressIncrement,
+    100
+  );
 
-  mediaRecorder.ondataavailable = (event) => {
-    if (event.data.size > 0) chunksRef.current.push(event.data);
-  };
+  try {
+    // 4. Update progress via API
+    const response = await axios.post('/api/getCourseProgress?action=update', {
+      userId,
+      courseId: id,
+      progress: newProgress
+    });
 
-  mediaRecorder.onstop = async () => {
-    setIsProcessing(true);
-    const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-    const file = new File([blob], "recording.webm", { type: "audio/webm" });
-    const cloudUrl = await uploadToCloudinary(file);
-    console.log('cloudUrl:',cloudUrl)
-    setAudioUrl(cloudUrl);
-    setIsProcessing(false);
-  };
-
-  mediaRecorder.start();
-  setIsRecording(true);
-};
-
-const stopRecording = () => {
-  mediaRecorderRef.current?.stop();
-  setIsRecording(false);
-};
-
-// Button onClick
-const handleRecordingClick = () => {
-  if (isRecording) {
-    stopRecording();
-  } else {
-    startRecording();
+    // 5. Update local state
+    setprogressData(response.data);
+    setCompletedSubmodules(prev => [...prev, subModule._id]);
+    
+  } catch (error) {
+    console.error('Error updating progress:', error);
   }
 };
+
+
+
+const fetchProgress = async () => {
+  try {
+    setLoading(true);
+    const api = await axios.post('/api/getCourseProgress?action=find', {userId, courseId:id});
+    setprogressData(api.data);
+    console.log("course progress:", api.data);
+  } catch (error) {
+    console.error('Error fetching progress:', error);
+  } finally {
+    setLoading(false);
+  }
+}
+
+ const handleYesClick = () => {
+    setShowModal(false);
+    setShowCallSection(true);
+  };
+
+  const handleNoClick = () => {
+    setShowModal(false);
+  };
+
+useEffect(() => {
+  if (progressData.progress === 100) {
+    // Mark all submodules as completed if course is 100% done
+    const allSubmoduleIds = data?.modules?.flatMap(module => 
+      module.subModules?.map(sub => sub._id) || []
+    ) || [];
+    setCompletedSubmodules(allSubmoduleIds);
+  }
+}, [progressData, data]);
+
+  useEffect(() => {
+  if (userId && id) {
+    fetchProgress();
+  }
+  console.log('here u go:',progressData.progress)
+}, [userId, id]);
 
 
 useEffect(() => {
@@ -121,6 +171,11 @@ const toggleSpeakContent = async () => {
     if (!res.ok) {
       throw new Error('Failed to fetch speech');
     }
+    // const track code 
+    const routeName='/python/speak'
+    const apiType='Valuable'
+        await apiUsage(userId, routeName, userEmail,apiType)
+
 
     const audioBlob = await res.blob();
     const audioUrl = URL.createObjectURL(audioBlob);
@@ -183,9 +238,12 @@ useEffect(() => {
     }));
   };
 
-  useEffect(() => {
+useEffect(() => {
+  if (!loadingUser && userId) {
     fetchCourse();
-  }, [id]);
+  }
+}, [id, userId, loadingUser]);
+
 
   if (!data) {
     return (
@@ -197,108 +255,52 @@ useEffect(() => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className="w-64 bg-white border-r border-gray-200 overflow-y-auto">
-        <div className="p-4 sticky top-0 bg-white border-b border-gray-200">
-          <h1 className="text-xl font-bold">{data.prompt || 'Course Modules'}</h1>
-        </div>
-        <div className="p-2">
-          {data?.modules?.map((module, moduleIndex) => (
-            <div key={moduleIndex} className="mb-1">
-              <div 
-                className="flex justify-between items-center py-2 px-2 hover:bg-gray-100 rounded cursor-pointer"
-                onClick={() => handleToggle(moduleIndex)}
-              >
-                <p className="font-medium">{module.title}</p>
-                {expandedModules[moduleIndex] ? <FaAngleDown /> : <FaAngleRight />}
-              </div>
-              {expandedModules[moduleIndex] && (
-                <div className="ml-4">
-                  {module.subModules?.map((subModule, subIndex) => (
-                    <div 
-                      key={subIndex}
-                      className={`py-2 px-2 text-sm rounded cursor-pointer ${selectedSubmodule?.title === subModule.title ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'}`}
-                      onClick={() => setSelectedSubmodule(subModule)}
-                    >
-                      {subModule.title}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      
-    <div className="flex-shrink-0 overflow-y-auto py-3" style={{ width: '56%' }}>
-        {selectedSubmodule ? (
-          <div className="max-w-2xl mx-auto bg-white p-4 rounded-lg shadow-sm">
-            <h2 className="text-2xl font-bold font-sans mb-4">{selectedSubmodule.title}</h2>
-             <button
-              onClick={toggleSpeakContent}
-              className="p-2 text-blue-600 hover:bg-blue-50 rounded-full"
-  title={isPlaying ? "Stop reading" : "Read aloud"}
-            >
-{                isPlaying?<FaVolumeOff/> : <FaVolumeHigh size={20} />
-}            </button>
-           <div
-      ref={contentRef}
-      className="prose max-w-none"
-      dangerouslySetInnerHTML={{
-        __html: selectedSubmodule.content
-          .replace(/<h2/g, '<h2 class="text-2xl font-bold mt-6 mb-3 text-gray-700"')
-          .replace(/<h3/g, '<h3 class="text-xl font-semibold mt-5 mb-2 text-gray-700"')
-          .replace(/<p/g, '<p class="mb-4 text-lg text-gray-600 leading-relaxed"')
-          .replace(/<ul/g, '<ul class="list-disc pl-5 mb-4"')
-          .replace(/<li/g, '<li class="mb-2 text-gray-600 font-bold "')
-          .replace(/<pre/g, '<pre class="bg-gray-100 p-4 rounded-md overflow-x-auto mb-4 relative group"')
-          .replace(
-            /<pre><code>/g,
-            '<pre class="!bg-gray-800 text-gray-500 font-bold p-4 rounded-md overflow-x-auto mb-4 whitespace-pre-wrap relative"><code class="block">'
-          )
-          .replace(/<\/code><\/pre>/g, "</code></pre>")
-          .replace(/\n/g, "<br/>"),
-      }}
-    ></div>
-          </div>
-        ) : (
-          <div className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-sm">
-            <p>Select a submodule to view its content</p>
-          </div>
-        )}
-      </div>
- 
-{/* start call section */}
-<div className="flex-1">
-<div className="p-3 flex justify-center  ">
-        <div className="rounded-full flex items-center justify-center w-64 h-64 bg-gradient-to-br from-[#c7b48c] via-[#95854c] to-[#675853] ">
-
-<button
-  onClick={handleRecordingClick}
-  disabled={isProcessing}
-  className={`font-bold text-white border-2 rounded-full py-3 px-6 flex items-center gap-2 ${
-    isRecording ? 'bg-red-500' : 'bg-black'
-  } ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white hover:text-black hover:border-black'}`}
->
-  {isRecording ? (
     <>
-      <FaStopCircle className="animate-pulse" />
-      Stop Recording
-    </>
-  ) : (
-    <>
-      <FaMicrophone />
-      Test Call
-    </>
-  )}
-</button>
-       </div>
+<div className="flex flex-col md:flex-row h-screen bg-gray-50">
+  {/* Left Sidebar - Course Modules */}
+  <ModuleBar 
+  data={data}
+  handleToggle={handleToggle}
+  expandedModules={expandedModules}
+  selectedSubmodule={selectedSubmodule}
+  setSelectedSubmodule={setSelectedSubmodule}
+  handleSubmoduleClick={handleSubmoduleClick}
+completedSubmodules={completedSubmodules}
+  />
+
+  {/* Main Content Area */}
+  <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto max-h-screen">
+    {/* Content Section */}
+   <ContentArea
+     data={data}
+
+   courseId={id}
+   userId={userId}
+   userName={userName}
+   userEmail={userEmail}
+   showCallSection={showCallSection}
+   progressData={progressData}
+   toggleSpeakContent={toggleSpeakContent}
+   showModal={showModal}
+   isPlaying={isPlaying}
+   handleNoClick={handleNoClick}
+   handleYesClick={handleYesClick}
+   selectedSubmodule={selectedSubmodule}
+   contentRef={contentRef}
+   />
+
+    {/* Right Sidebar - Agent Selection */}
+    {showCallSection && (
+<div className="w-full lg:w-4/12 border-t lg:border-t-0 lg:border-l border-gray-200 bg-gray-50 flex items-center justify-center p-4 overflow-y-auto max-h-screen">
+        <CallSection
+          preCallClass="w-full max-w-md bg-white rounded-xl shadow-lg p-6 space-y-6"
+          containerClass="w-full flex justify-center"
+          agentClass="space-y-3"
+        />
+      </div>    )}
+  </div>
 </div>
-</div>
-      
-    </div>
+</>
   );
 }
+
